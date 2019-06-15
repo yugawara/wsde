@@ -45,4 +45,5 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - hakyll 
     - wsde
