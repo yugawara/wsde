@@ -24,13 +24,11 @@ abc (Accum days (Cashflow orig_cashflow_values)) (MonthlyIncome how_many_months)
     cc :: [[Integer]]
     cc = (map dd [1 .. how_many_months])
     dd :: Natural -> [Integer]
-    dd x = map (\(a1, a2) -> a2) (zip [0] (rr x))
-    rr x = repeat $ toInteger x
+    dd x = map (\(a1, a2) -> a2) (zip [1 .. days_in_a_month] $ [7] ++ rr)
+    rr = repeat 0
+    xxxx = take (fromEnum days) $ repeat 0
     yy :: [(Integer, Integer)]
-    yy =
-      zip
-        ((take (fromEnum days) $ repeat 0) ++ concat cc)
-        (orig_cashflow_values ++ (repeat 0))
+    yy = zip (xxxx ++ concat cc) (orig_cashflow_values ++ (repeat 0))
 abc (Accum days cashflow) (AdvanceDays how_many_days) =
   Accum (how_many_days + days) cashflow
 abc (Accum days cashflow) turn = Accum days cashflow
