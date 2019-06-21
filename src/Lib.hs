@@ -10,33 +10,37 @@ report =
     "\n"
     [(show turns), (show $ cashsum turns), (show $ turns2cashflows turns)]
 
---turns = [Noop, Contract 2, Days 10, Contract 1]
-turns = [Days 6, Contract 2]
+turns = [AdvanceDays 0, MonthlyIncome 2]
 
 cashsum turns = sum [x | Cash x <- turns]
 
-abc (Accum days (Cashflow orig_cashflow_values)) (Contract contract_days) =
+days_in_a_month = 20
+
+abc (Accum days (Cashflow orig_cashflow_values)) (MonthlyIncome how_many_months) =
   Accum days zz
   where
     zz = Cashflow $ (map ff yy)
     ff (x, y) = x + y
+    cc :: [[Integer]]
+    cc = (map dd [1 .. how_many_months])
+    dd :: Natural -> [Integer]
+    dd x = map (\(a1, a2) -> a2) (zip [0] (rr x))
+    rr x = repeat $ toInteger x
     yy :: [(Integer, Integer)]
     yy =
       zip
-        ((take (fromEnum days) $ repeat 0) ++
-        --((take (fromIntegral days) $ repeat 0) ++
-         (map (\x -> (toInteger x)) [1 .. contract_days]))
+        ((take (fromEnum days) $ repeat 0) ++ concat cc)
         (orig_cashflow_values ++ (repeat 0))
-abc (Accum days cashflow) (Days current_days)  =
-  Accum (current_days + days) cashflow
+abc (Accum days cashflow) (AdvanceDays how_many_days) =
+  Accum (how_many_days + days) cashflow
 abc (Accum days cashflow) turn = Accum days cashflow
 
 turns2cashflows turns = foldl abc (Accum 0 (Cashflow [])) turns
 
 data Turn
   = Cash Integer
-  | Contract Integer
-  | Days Natural
+  | MonthlyIncome Natural
+  | AdvanceDays Natural
   | Noop
   deriving (Show, Eq)
 
