@@ -22,9 +22,9 @@ abc (Accum days (Cashflow orig_cashflow_values)) (MonthlyIncome how_many_months)
     zz = Cashflow $ (map ff yy)
     ff (x, y) = x + y
     cc :: [[Integer]]
-    cc = (map dd [1 .. how_many_months])
-    dd :: Natural -> [Integer]
-    dd x = map (\(a1, a2) -> a2) (zip [1 .. days_in_a_month] $ [7] ++ rr)
+    cc = replicate (fromEnum how_many_months) dd
+    dd :: [Integer]
+    dd = map (\(a1, a2) -> a2) (zip [1 .. days_in_a_month] $ [7] ++ rr)
     rr = repeat 0
     xxxx = take (fromEnum days) $ repeat 0
     yy :: [(Integer, Integer)]
