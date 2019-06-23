@@ -8,9 +8,9 @@ import           Numeric.Natural
 report = intercalate "\n" [(show turns), (show $ turns2cashflows turns)]
 
 turns =
-  [ AddCashflow (peridoc_cashflow days_in_a_month 15 3)
-  , AdvanceDays 1
-  , AddCashflow (peridoc_cashflow days_in_a_month 15 3)
+  [ AddCashflowShape (PeriodicCashflow days_in_a_month 15 3)
+  --, AdvanceDays 1
+  --, AddCashflow (peridoc_cashflow days_in_a_month 15 3)
   ]
 
 type HowManyTimes = Natural
@@ -46,6 +46,21 @@ abc (AccumulatedCashflow days orig_cashflow) (AddCashflow additional_cashflow) =
         (orig_cashflow ++ (repeat 0))
     cashflow :: Cashflow
     cashflow = map (\(x, y) -> x + y) cash_pairs
+abc (AccumulatedCashflow days orig_cashflow) (AddCashflowShape additional_cashflowshape) =
+  AccumulatedCashflow days cashflow
+  where
+    initial_dead_period = take (fromEnum days) $ repeat 0
+    cash_pairs :: [(Cash, Cash)]
+    cash_pairs =
+      zip
+        (initial_dead_period ++ additional_cashflow)
+        (orig_cashflow ++ (repeat 0))
+    cashflow :: Cashflow
+    cashflow = map (\(x, y) -> x + y) cash_pairs
+    additional_cashflow = cashflowshape2cashflow additional_cashflowshape
+
+cashflowshape2cashflow (PeriodicCashflow how_often how_much how_many_times) =
+  peridoc_cashflow how_often how_much how_many_times
 
 turns2cashflows turns =
   case vvv of
