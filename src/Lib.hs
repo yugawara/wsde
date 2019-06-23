@@ -5,14 +5,13 @@ module Lib
 import           Data.List
 import           Numeric.Natural
 
-report =
-  intercalate
-    "\n"
-    [(show turns), (show $ cashsum turns), (show $ turns2cashflows turns)]
+report = intercalate "\n" [(show turns), (show $ turns2cashflows turns)]
 
-turns = [AdvanceDays 0, MonthlyCash days_in_a_month 15 3]
-
-cashsum turns = sum [x | Cash x <- turns]
+turns =
+  [ AddCashflow (peridoc_cashflow days_in_a_month 15 3)
+  , AdvanceDays 1
+  , AddCashflow (peridoc_cashflow days_in_a_month 15 3)
+  ]
 
 type HowManyTimes = Natural
 
@@ -22,51 +21,56 @@ type Cash = Integer
 
 days_in_a_month = 20 :: HowManyDays
 
-abc :: Accum -> Turn -> Accum
-abc (Accum days (Cashflow orig_cashflow_values)) (MonthlyCash how_often how_much how_many_months) =
-  Accum days cashflow
+peridoc_cashflow :: HowManyDays -> Cash -> HowManyDays -> Cashflow
+peridoc_cashflow how_often how_much how_many_months = monthly_cash_series
   where
-    cashflow :: Cashflow
-    cashflow = Cashflow $ (map (\(x, y) -> x + y) cash_pairs)
-    monthly_cash_series :: [Cash]
+    monthly_cash_series :: Cashflow
     monthly_cash_series =
       concat $ replicate (fromEnum how_many_months) monthly_cash
-    monthly_cash :: [Cash]
+    monthly_cash :: Cashflow
     monthly_cash =
       map
         (\(a1, a2) -> a2)
         (zip [1 .. days_in_a_month] $ [how_much] ++ (repeat 0))
+
+abc (AccumulatedCashflow days cashflow) (AdvanceDays how_many_days) =
+  AccumulatedCashflow (how_many_days + days) cashflow
+abc (AccumulatedCashflow days orig_cashflow) (AddCashflow additional_cashflow) =
+  AccumulatedCashflow days cashflow
+  where
     initial_dead_period = take (fromEnum days) $ repeat 0
     cash_pairs :: [(Cash, Cash)]
     cash_pairs =
       zip
-        (initial_dead_period ++ monthly_cash_series)
-        (orig_cashflow_values ++ (repeat 0))
-abc (Accum days cashflow) (AdvanceDays how_many_days) =
-  Accum (how_many_days + days) cashflow
-abc (Accum days cashflow) turn = Accum days cashflow
+        (initial_dead_period ++ additional_cashflow)
+        (orig_cashflow ++ (repeat 0))
+    cashflow :: Cashflow
+    cashflow = map (\(x, y) -> x + y) cash_pairs
 
 turns2cashflows turns =
   case vvv of
-    Accum x y -> y
+    AccumulatedCashflow x y -> y
   where
-    vvv :: Accum
-    vvv = foldl abc (Accum 0 (Cashflow [])) turns
+    vvv :: AccumulatedCashflow
+    vvv = foldl abc (AccumulatedCashflow 0 []) turns
+
+data CashflowShape =
+  PeriodicCashflow HowManyDays
+                   Cash
+                   HowManyTimes
+  deriving (Show, Eq)
 
 data Turn
-  = Cash Cash
-  | MonthlyCash HowManyDays
-                Cash
-                HowManyTimes
+  = AddCash Cash
+  | AddCashflow Cashflow
+  | AddCashflowShape CashflowShape
   | AdvanceDays HowManyDays
   | Noop
   deriving (Show, Eq)
 
-data Accum =
-  Accum HowManyDays
-        Cashflow
+data AccumulatedCashflow =
+  AccumulatedCashflow HowManyDays
+                      Cashflow
   deriving (Show)
 
-data Cashflow =
-  Cashflow [Integer]
-  deriving (Show)
+type Cashflow = [Cash]
