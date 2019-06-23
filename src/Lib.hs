@@ -33,41 +33,38 @@ peridoc_cashflow how_often how_much how_many_months = monthly_cash_series
         (\(a1, a2) -> a2)
         (zip [1 .. days_in_a_month] $ [how_much] ++ (repeat 0))
 
-abc (AccumulatedCashflow days cashflow) (AdvanceDays how_many_days) =
+accumulate_cashflow (AccumulatedCashflow days cashflow) (AdvanceDays how_many_days) =
   AccumulatedCashflow (how_many_days + days) cashflow
-abc (AccumulatedCashflow days orig_cashflow) (AddCashflow additional_cashflow) =
+accumulate_cashflow (AccumulatedCashflow days orig_cashflow) (AddCashflow additional_cashflow) =
   AccumulatedCashflow days cashflow
   where
-    initial_dead_period = take (fromEnum days) $ repeat 0
-    cash_pairs :: [(Cash, Cash)]
-    cash_pairs =
-      zip
-        (initial_dead_period ++ additional_cashflow)
-        (orig_cashflow ++ (repeat 0))
-    cashflow :: Cashflow
-    cashflow = map (\(x, y) -> x + y) cash_pairs
-abc (AccumulatedCashflow days orig_cashflow) (AddCashflowShape additional_cashflowshape) =
+    cashflow = xcashflow days additional_cashflow orig_cashflow
+accumulate_cashflow (AccumulatedCashflow days orig_cashflow) (AddCashflowShape additional_cashflowshape) =
   AccumulatedCashflow days cashflow
   where
-    initial_dead_period = take (fromEnum days) $ repeat 0
-    cash_pairs :: [(Cash, Cash)]
-    cash_pairs =
-      zip
-        (initial_dead_period ++ additional_cashflow)
-        (orig_cashflow ++ (repeat 0))
-    cashflow :: Cashflow
-    cashflow = map (\(x, y) -> x + y) cash_pairs
-    additional_cashflow = cashflowshape2cashflow additional_cashflowshape
+    cashflow = xcashflow days additional_cashflow orig_cashflow
+    additional_cashflow = (cashflowshape2cashflow additional_cashflowshape)
 
 cashflowshape2cashflow (PeriodicCashflow how_often how_much how_many_times) =
   peridoc_cashflow how_often how_much how_many_times
+
+xcashflow initial_dead_days additional_cashflow orig_cashflow = cashflow
+  where
+    initial_dead_period = take (fromEnum initial_dead_days) $ repeat 0
+    cash_pairs :: [(Cash, Cash)]
+    cash_pairs =
+      zip
+        (initial_dead_period ++ additional_cashflow)
+        (orig_cashflow ++ (repeat 0))
+    cashflow :: Cashflow
+    cashflow = map (\(x, y) -> x + y) cash_pairs
 
 turns2cashflows turns =
   case vvv of
     AccumulatedCashflow x y -> y
   where
     vvv :: AccumulatedCashflow
-    vvv = foldl abc (AccumulatedCashflow 0 []) turns
+    vvv = foldl accumulate_cashflow (AccumulatedCashflow 0 []) turns
 
 data CashflowShape =
   PeriodicCashflow HowManyDays
