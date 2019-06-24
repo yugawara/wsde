@@ -33,17 +33,18 @@ peridoc_cashflow how_often how_much how_many_months = monthly_cash_series
         (\(a1, a2) -> a2)
         (zip [1 .. days_in_a_month] $ [how_much] ++ (repeat 0))
 
+accumulate_cashflow :: AccumulatedCashflow -> Turn -> AccumulatedCashflow
 accumulate_cashflow (AccumulatedCashflow days cashflow) (AdvanceDays how_many_days) =
   AccumulatedCashflow (how_many_days + days) cashflow
 accumulate_cashflow (AccumulatedCashflow days orig_cashflow) (AddCashflow additional_cashflow) =
-  AccumulatedCashflow days cashflow
-  where
-    cashflow = xcashflow days additional_cashflow orig_cashflow
+  AccumulatedCashflow days (xcashflow days additional_cashflow orig_cashflow)
 accumulate_cashflow (AccumulatedCashflow days orig_cashflow) (AddCashflowShape additional_cashflowshape) =
-  AccumulatedCashflow days cashflow
-  where
-    cashflow = xcashflow days additional_cashflow orig_cashflow
-    additional_cashflow = (cashflowshape2cashflow additional_cashflowshape)
+  AccumulatedCashflow
+    days
+    (xcashflow
+       days
+       (cashflowshape2cashflow additional_cashflowshape)
+       orig_cashflow)
 
 cashflowshape2cashflow (PeriodicCashflow how_often how_much how_many_times) =
   peridoc_cashflow how_often how_much how_many_times
