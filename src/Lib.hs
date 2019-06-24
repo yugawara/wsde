@@ -5,12 +5,12 @@ module Lib
 import           Data.List
 import           Numeric.Natural
 
-report = intercalate "\n" [(show turns), (show $ turns2cashflows turns)]
+report = intercalate "\n" [(show turns), (show $ game_state turns)]
 
 turns =
   [ AddCashflowShape (PeriodicCashflow days_in_a_month 15 3)
-  --, AdvanceDays 1
-  --, AddCashflow (peridoc_cashflow days_in_a_month 15 3)
+  , AdvanceDays 1
+  , AddCashflowShape (PeriodicCashflow days_in_a_month 15 3)
   ]
 
 type HowManyTimes = Natural
@@ -33,23 +33,28 @@ peridoc_cashflow how_often how_much how_many_months = monthly_cash_series
         (\(a1, a2) -> a2)
         (zip [1 .. days_in_a_month] $ [how_much] ++ (repeat 0))
 
-accumulate_cashflow :: AccumulatedCashflow -> Turn -> AccumulatedCashflow
-accumulate_cashflow (AccumulatedCashflow days cashflow) (AdvanceDays how_many_days) =
-  AccumulatedCashflow (how_many_days + days) cashflow
-accumulate_cashflow (AccumulatedCashflow days orig_cashflow) (AddCashflow additional_cashflow) =
-  AccumulatedCashflow days (xcashflow days additional_cashflow orig_cashflow)
-accumulate_cashflow (AccumulatedCashflow days orig_cashflow) (AddCashflowShape additional_cashflowshape) =
-  AccumulatedCashflow
-    days
-    (xcashflow
-       days
-       (cashflowshape2cashflow additional_cashflowshape)
-       orig_cashflow)
+new_gamestate :: GameState -> Turn -> GameState
+new_gamestate (GameState days orig_cashflow) action =
+  case action of
+    (AdvanceDays how_many_days) ->
+      GameState (how_many_days + days) orig_cashflow
+    (AddCashflow additional_cashflow) ->
+      GameState
+        days
+        (superimpose_cashflow days additional_cashflow orig_cashflow)
+    (AddCashflowShape additional_cashflowshape) ->
+      GameState
+        days
+        (superimpose_cashflow
+           days
+           (cashflowshape2cashflow additional_cashflowshape)
+           orig_cashflow)
 
 cashflowshape2cashflow (PeriodicCashflow how_often how_much how_many_times) =
   peridoc_cashflow how_often how_much how_many_times
 
-xcashflow initial_dead_days additional_cashflow orig_cashflow = cashflow
+superimpose_cashflow initial_dead_days additional_cashflow orig_cashflow =
+  cashflow
   where
     initial_dead_period = take (fromEnum initial_dead_days) $ repeat 0
     cash_pairs :: [(Cash, Cash)]
@@ -60,12 +65,8 @@ xcashflow initial_dead_days additional_cashflow orig_cashflow = cashflow
     cashflow :: Cashflow
     cashflow = map (\(x, y) -> x + y) cash_pairs
 
-turns2cashflows turns =
-  case vvv of
-    AccumulatedCashflow x y -> y
-  where
-    vvv :: AccumulatedCashflow
-    vvv = foldl accumulate_cashflow (AccumulatedCashflow 0 []) turns
+game_state :: [Turn] -> GameState
+game_state turns = foldl new_gamestate (GameState 0 []) turns
 
 data CashflowShape =
   PeriodicCashflow HowManyDays
@@ -81,9 +82,9 @@ data Turn
   | Noop
   deriving (Show, Eq)
 
-data AccumulatedCashflow =
-  AccumulatedCashflow HowManyDays
-                      Cashflow
+data GameState =
+  GameState HowManyDays
+            Cashflow
   deriving (Show)
 
 type Cashflow = [Cash]
