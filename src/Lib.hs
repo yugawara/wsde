@@ -34,8 +34,8 @@ peridoc_cashflow how_often how_much how_many_months = monthly_cash_series
         (zip [1 .. days_in_a_month] $ [how_much] ++ (repeat 0))
 
 new_gamestate :: GameState -> Turn -> GameState
-new_gamestate (GameState days orig_cashflow) action =
-  case action of
+new_gamestate (GameState days orig_cashflow) turn =
+  case turn of
     (AdvanceDays how_many_days) ->
       GameState (how_many_days + days) orig_cashflow
     (AddCashflow additional_cashflow) ->
