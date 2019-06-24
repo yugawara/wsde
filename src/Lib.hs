@@ -30,25 +30,31 @@ peridoc_cashflow how_often how_much how_many_months = monthly_cash_series
     monthly_cash :: Cashflow
     monthly_cash =
       map
-        (\(a1, a2) -> a2)
+        (\(_, cash) -> cash)
         (zip [1 .. days_in_a_month] $ [how_much] ++ (repeat 0))
 
 new_gamestate :: GameState -> Turn -> GameState
-new_gamestate (GameState days orig_cashflow) turn =
+new_gamestate old_gamestate turn =
   case turn of
     (AdvanceDays how_many_days) ->
-      GameState (how_many_days + days) orig_cashflow
+      old_gamestate
+        {days_ellapsed = how_many_days + days_ellapsed old_gamestate}
     (AddCashflow additional_cashflow) ->
-      GameState
-        days
-        (superimpose_cashflow days additional_cashflow orig_cashflow)
+      old_gamestate
+        { cumulative_cashflow =
+            (superimpose_cashflow
+               (days_ellapsed old_gamestate)
+               additional_cashflow
+               (cumulative_cashflow old_gamestate))
+        }
     (AddCashflowShape additional_cashflowshape) ->
-      GameState
-        days
-        (superimpose_cashflow
-           days
-           (cashflowshape2cashflow additional_cashflowshape)
-           orig_cashflow)
+      old_gamestate
+        { cumulative_cashflow =
+            (superimpose_cashflow
+               (days_ellapsed old_gamestate)
+               (cashflowshape2cashflow additional_cashflowshape)
+               (cumulative_cashflow old_gamestate))
+        }
 
 cashflowshape2cashflow (PeriodicCashflow how_often how_much how_many_times) =
   peridoc_cashflow how_often how_much how_many_times
@@ -82,9 +88,9 @@ data Turn
   | Noop
   deriving (Show, Eq)
 
-data GameState =
-  GameState HowManyDays
-            Cashflow
-  deriving (Show)
+data GameState = GameState
+  { days_ellapsed       :: HowManyDays
+  , cumulative_cashflow :: Cashflow
+  } deriving (Show)
 
 type Cashflow = [Cash]
