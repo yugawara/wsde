@@ -34,26 +34,25 @@ peridoc_cashflow how_often how_much how_many_months = monthly_cash_series
         (zip [1 .. days_in_a_month] $ [how_much] ++ (repeat 0))
 
 new_gamestate :: GameState -> Turn -> GameState
-new_gamestate old_gamestate turn =
+new_gamestate gs turn =
   case turn of
     (AdvanceDays how_many_days) ->
-      old_gamestate
-        {days_ellapsed = how_many_days + days_ellapsed old_gamestate}
+      gs {days_ellapsed = how_many_days + days_ellapsed gs}
     (AddCashflow additional_cashflow) ->
-      old_gamestate
+      gs
         { cumulative_cashflow =
             (superimpose_cashflow
-               (days_ellapsed old_gamestate)
+               (days_ellapsed gs)
                additional_cashflow
-               (cumulative_cashflow old_gamestate))
+               (cumulative_cashflow gs))
         }
     (AddCashflowShape additional_cashflowshape) ->
-      old_gamestate
+      gs
         { cumulative_cashflow =
             (superimpose_cashflow
-               (days_ellapsed old_gamestate)
+               (days_ellapsed gs)
                (cashflowshape2cashflow additional_cashflowshape)
-               (cumulative_cashflow old_gamestate))
+               (cumulative_cashflow gs))
         }
 
 cashflowshape2cashflow (PeriodicCashflow how_often how_much how_many_times) =
